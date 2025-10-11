@@ -19,6 +19,10 @@ run/main_scene="uid://bbcxbkkdv314"
 config/features=PackedStringArray("4.5", "Mobile")
 config/icon="res://icon.svg"
 
+[debug]
+
+gdscript/warnings/enable=false
+
 [display]
 
 window/size/viewport_width=384

@@ -6,13 +6,29 @@ enum State {
 	RUN,
 }
 
-@onready var wall_chacker: RayCast2D = $Graphics/WallChacker
-@onready var player_chacker: RayCast2D = $Graphics/PlayerChacker2
-@onready var floor_chacker: RayCast2D = $Graphics/FloorChacker2
+@onready var wall_checker: RayCast2D = $Graphics/WallChacker
+@onready var player_checker: RayCast2D = $Graphics/PlayerChacker2
+@onready var floor_checker: RayCast2D = $Graphics/FloorChacker2
 @onready var calm_down_timer: Timer = $CalmDownTimer
 
+func tick_physics(state: State, delta: float) -> void:
+	match state:
+		State.IDLE:
+			move(0.0, delta)
+		
+		State.WALK:
+			move(max_speed / 3, delta)
+		
+		State.RUN:
+			if wall_checker.is_colliding() or not floor_checker.is_colliding():
+				direction *= -1
+			move(max_speed, delta)
+			if player_checker.is_colliding():
+				calm_down_timer.start()
+
+
 func get_next_state(state: State) -> State: # 状态之间的转换逻辑
-	if player_chacker.is_colliding(): # 如果检测到玩家
+	if player_checker.is_colliding():
 		return State.RUN
 		
 	match state:
@@ -21,7 +37,7 @@ func get_next_state(state: State) -> State: # 状态之间的转换逻辑
 				return State.WALK
 				
 		State.WALK:
-			if wall_chacker.is_colliding() or not floor_chacker.is_colliding(): #前方是墙或则不是悬崖
+			if wall_checker.is_colliding() or not floor_checker.is_colliding(): #前方是墙或不是悬崖
 				return State.IDLE	
 				
 		State.RUN:
@@ -30,3 +46,18 @@ func get_next_state(state: State) -> State: # 状态之间的转换逻辑
 	
 	return state
 	
+func transition_state(from:State, to:State) -> void: # 传入两个参，一个从什么状态退出，一个进入什么状态
+	
+	match to:
+		State.IDLE:
+			animation_player.play("idle")
+			if wall_checker.is_colliding():
+				direction *= -1
+		
+		State.WALK:
+			animation_player.play("walk")
+			if not floor_checker.is_colliding():
+				direction *= -1
+		
+		State.RUN:
+			animation_player.play("run")

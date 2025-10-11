@@ -1,8 +1,9 @@
-[gd_scene load_steps=7 format=4 uid="uid://bbcxbkkdv314"]
+[gd_scene load_steps=8 format=4 uid="uid://bbcxbkkdv314"]
 
 [ext_resource type="Script" uid="uid://b0bhisgnbeea5" path="res://tscn_gd/world.gd" id="1_cj1tr"]
 [ext_resource type="TileSet" uid="uid://dj80h3e4eci7u" path="res://tres/background.tres" id="2_cj1tr"]
 [ext_resource type="PackedScene" uid="uid://d08n7x2g8jvfe" path="res://tscn_gd/player.tscn" id="2_yf1fv"]
+[ext_resource type="PackedScene" uid="uid://c3dbx7en3cdxp" path="res://tscn_gd/enemies/boar.tscn" id="4_eupa8"]
 [ext_resource type="Texture2D" uid="uid://bjmapitgc7fv7" path="res://assets/Legacy-Fantasy - High Forest 2.3/Background/Background.png" id="4_qdr2m"]
 [ext_resource type="Texture2D" uid="uid://b0oqbbhh2wwyh" path="res://assets/Legacy-Fantasy - High Forest 2.3/Trees/Background.png" id="5_vn2qd"]
 [ext_resource type="Texture2D" uid="uid://cd1bseixusb81" path="res://assets/Legacy-Fantasy - High Forest 2.3/Assets/Tree-Assets.png" id="6_hryyf"]
@@ -36,6 +37,9 @@ position_smoothing_enabled = true
 drag_horizontal_enabled = true
 drag_vertical_enabled = true
 editor_draw_drag_margin = true
+
+[node name="Boar" parent="Player" instance=ExtResource("4_eupa8")]
+position = Vector2(767, -15)
 
 [node name="Decorations" type="Node2D" parent="."]
 metadata/_edit_group_ = true
