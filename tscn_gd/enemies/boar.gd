@@ -58,6 +58,7 @@ func transition_state(from:State, to:State) -> void: # 传入两个参，一个�
 			animation_player.play("walk")
 			if not floor_checker.is_colliding():
 				direction *= -1
+				floor_checker.force_raycast_update() # 更新缓存内的碰撞数据，使野猪重新判断前方路况
 		
 		State.RUN:
 			animation_player.play("run")
