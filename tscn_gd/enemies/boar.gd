@@ -6,9 +6,9 @@ enum State {
 	RUN,
 }
 
-@onready var wall_checker: RayCast2D = $Graphics/WallChacker
-@onready var player_checker: RayCast2D = $Graphics/PlayerChacker2
-@onready var floor_checker: RayCast2D = $Graphics/FloorChacker2
+@onready var wall_checker: RayCast2D = $Graphics/WallChecker
+@onready var player_checker: RayCast2D = $Graphics/PlayerChecker
+@onready var floor_checker: RayCast2D = $Graphics/FloorChecker
 @onready var calm_down_timer: Timer = $CalmDownTimer
 
 func tick_physics(state: State, delta: float) -> void:

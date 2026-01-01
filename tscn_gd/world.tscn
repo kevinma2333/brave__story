@@ -38,8 +38,8 @@ drag_horizontal_enabled = true
 drag_vertical_enabled = true
 editor_draw_drag_margin = true
 
-[node name="Boar" parent="Player" instance=ExtResource("4_eupa8")]
-position = Vector2(767, -15)
+[node name="Boar" parent="." instance=ExtResource("4_eupa8")]
+position = Vector2(885, 195)
 
 [node name="Decorations" type="Node2D" parent="."]
 metadata/_edit_group_ = true
