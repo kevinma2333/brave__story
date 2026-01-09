@@ -1,3 +1,4 @@
+class_name Player
 extends CharacterBody2D
 
 # (状态机) 枚举玩家状态
@@ -9,19 +10,28 @@ enum State{
 	LANDING,
 	WALL_SLIDING,
 	WALL_JUMP,
+	ATTACK_1,
+	ATTACK_2,
+	ATTACK_3,
 }
 
-const GROUND_STATES := [State.IDLE, State.RUNNING, State.LANDING] # 在地面上所对应的状态
+const GROUND_STATES := [
+	State.IDLE, State.RUNNING, State.LANDING, State.ATTACK_1, State.ATTACK_2, State.ATTACK_3
+] # 在地面上所对应的状态
 const RUN_SPEED := 160.0 # 跑步速度
 const JUMP_VELOCITY :=-320.0 # 跳跃高度
 const FLOOR_ACCELERATION := RUN_SPEED / 0.2 # 在地面上的加速度
 const AIR_ACCELERATION := RUN_SPEED / 0.1 # 在空中的加速度
 const WALL_JUMP_VELOCITY := Vector2(500, -320) # 在墙跳时的跳跃高度
 
+@export var can_combo := false ## 可以进行攻击
+
 # 从项目设置中获取重力加速度
 var default_gravity := ProjectSettings.get("physics/2d/default_gravity") as float 
 #跳跃第一帧
 var is_first_tick := false
+# 玩家在设定时间内按下第二次攻击键
+var is_combo_requested := false
 
 @onready var graphics: Node2D = $Graphics
 @onready var animation_player: AnimationPlayer = $AnimationPlayer
@@ -34,7 +44,7 @@ var is_first_tick := false
 # coyote_timer 郊狼时间，指在高处下落时玩家可以在空中起跳
 # jump_request_timer 在手动跳跃（非自然落地）落地前0.1秒内玩家若按下跳跃键，则玩家会在落地后的下一帧起跳
 
-func  _unhandled_input(event: InputEvent) -> void: #根据玩家按键进行移动（仅处理跳跃）
+func  _unhandled_input(event: InputEvent) -> void: #根据玩家按键进行移动（仅处理跳跃和二次攻击）
 	# 当有一个输入未被 Input 消耗时调用
 	# 因为在 _physics_process 函数中没有任何一个 Input 消耗"jump"
 	# 所以按下跳跃键必定触发"jump"
@@ -47,6 +57,8 @@ func  _unhandled_input(event: InputEvent) -> void: #根据玩家按键进行移�
 		# 则主动帮玩家降低跳跃高度
 		# 从而实现根据按跳跃键的时间的长度控制跳跃的高度
 			velocity.y = JUMP_VELOCITY /2
+	if event.is_action_pressed("attack") and can_combo:
+		is_combo_requested = true
 
 		
 # 因为我们在StateMachine节点中使用了 transition_state get_next_state tick_physics
@@ -79,7 +91,9 @@ func tick_physics(state:State, delta: float) -> void: # 写当玩家处于某个
 				graphics.scale.x = get_wall_normal().x
 			else:
 				move(default_gravity,delta)
-			
+		
+		State.ATTACK_1, State.ATTACK_2, State.ATTACK_3:
+			stand(default_gravity, delta) # 使玩家在攻击时保持不动
 
 			
 	is_first_tick = false # 不再是跳跃第一帧		
@@ -122,19 +136,21 @@ func get_next_state(state: State) -> State: # 根据当前状态判断玩家下�
 	var should_jump := can_jump and jump_request_timer.time_left > 0 # 如果玩家跳跃或空中跳跃时间内，则为true
 	if should_jump: # 如果因该起跳
 		return State.JUMP # 将状态更改为跳跃
+	if State in GROUND_STATES and not is_on_floor(): # 处理非手动跳跃情况（下落）
+		return State.FALL
 	
 	var direction := Input.get_axis("move_left","move_right") # 获取玩家按键输入，a为-1，不按为0，d为1 
 	var is_still := is_zero_approx(direction) and is_zero_approx(velocity.x)  # 仅当玩家完全停止时返回true
 	
 	match state: # match 相当于if,例如：当State为IDLE时执行。。。，当State为RUNNING执行。。。
 		State.IDLE:
-			if not is_on_floor(): # 处理非手动跳跃情况（下落）
-				return State.FALL
+			if Input.is_action_just_pressed("attack"): # 再走步状态下按下攻击键，进入攻击状态
+				return State.ATTACK_1
 			if not is_still: # 如果玩家不是站立不动的
 				return State.RUNNING # 将状态切换为运动
 		State.RUNNING:
-			if not is_on_floor(): # 处理非手动跳跃情况（下落）
-				return State.FALL
+			if Input.is_action_just_pressed("attack"): # 再跑步状态下按下攻击键，进入攻击状态
+				return State.ATTACK_1
 			if is_still: # 如果玩家是站立不动的
 				return State.IDLE # 将状态切换为站立
 		State.JUMP:
@@ -163,6 +179,18 @@ func get_next_state(state: State) -> State: # 根据当前状态判断玩家下�
 				return State.FALL
 			if can_wall_slide() and not is_first_tick:
 				return State.WALL_SLIDING
+		
+		#处理多段攻击状态转换
+		State.ATTACK_1:
+			if not animation_player.is_playing():
+				return State.ATTACK_2 if is_combo_requested else State.IDLE
+		State.ATTACK_2:
+			if not animation_player.is_playing():
+				return State.ATTACK_3 if is_combo_requested else State.IDLE
+		State.ATTACK_3:
+			if not animation_player.is_playing():
+				return State.IDLE
+		
 		
 	return state
 	
@@ -209,6 +237,16 @@ func transition_state(from:State, to:State) -> void: # 传入两个参，一个�
 			velocity= WALL_JUMP_VELOCITY
 			velocity.x *= get_wall_normal().x # 根据墙壁方向判断向左还是向右
 			jump_request_timer.stop() # 停止在空中跳跃计时器
+		
+		State.ATTACK_1:
+			animation_player.play("attack_1")
+			is_combo_requested = false # 在攻击期间按下攻击键事件已经被处理，恢复判断变量
+		State.ATTACK_2:
+			animation_player.play("attack_2")
+			is_combo_requested = false			
+		State.ATTACK_3:
+			animation_player.play("attack_3")
+			is_combo_requested = false	
 	
 	## 测试用	（在蹬墙跳的时候减慢时间）
 	#if to == State.WALL_JUMP:
