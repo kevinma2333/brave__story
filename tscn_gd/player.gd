@@ -30,8 +30,7 @@ const WALL_JUMP_VELOCITY := Vector2(500, -320) # 在墙跳时的跳跃高度
 var default_gravity := ProjectSettings.get("physics/2d/default_gravity") as float 
 #跳跃第一帧
 var is_first_tick := false
-# 玩家在设定时间内按下第二次攻击键
-var is_combo_requested := false
+
 
 @onready var graphics: Node2D = $Graphics
 @onready var animation_player: AnimationPlayer = $AnimationPlayer
@@ -40,6 +39,7 @@ var is_combo_requested := false
 @onready var hand_checker: RayCast2D = $Graphics/HandChecker
 @onready var foot_checker: RayCast2D = $Graphics/FootChecker
 @onready var state_machine: StateMachine = $StateMachine
+@onready var combo_timer: Timer = $ComboTimer
 
 # coyote_timer 郊狼时间，指在高处下落时玩家可以在空中起跳
 # jump_request_timer 在手动跳跃（非自然落地）落地前0.1秒内玩家若按下跳跃键，则玩家会在落地后的下一帧起跳
@@ -57,8 +57,12 @@ func  _unhandled_input(event: InputEvent) -> void: #根据玩家按键进行移�
 		# 则主动帮玩家降低跳跃高度
 		# 从而实现根据按跳跃键的时间的长度控制跳跃的高度
 			velocity.y = JUMP_VELOCITY /2
-	if event.is_action_pressed("attack") and can_combo:
-		is_combo_requested = true
+	
+	## 三段攻击
+	#if event.is_action_pressed("attack") and can_combo:
+		#is_combo_requested = true
+	if event.is_action_pressed("attack"):
+		combo_timer.start()	
 
 		
 # 因为我们在StateMachine节点中使用了 transition_state get_next_state tick_physics
@@ -183,10 +187,10 @@ func get_next_state(state: State) -> State: # 根据当前状态判断玩家下�
 		#处理多段攻击状态转换
 		State.ATTACK_1:
 			if not animation_player.is_playing():
-				return State.ATTACK_2 if is_combo_requested else State.IDLE
+				return State.ATTACK_2 if combo_timer.time_left > 0 else State.IDLE
 		State.ATTACK_2:
 			if not animation_player.is_playing():
-				return State.ATTACK_3 if is_combo_requested else State.IDLE
+				return State.ATTACK_3 if combo_timer.time_left > 0 else State.IDLE
 		State.ATTACK_3:
 			if not animation_player.is_playing():
 				return State.IDLE
@@ -239,14 +243,14 @@ func transition_state(from:State, to:State) -> void: # 传入两个参，一个�
 			jump_request_timer.stop() # 停止在空中跳跃计时器
 		
 		State.ATTACK_1:
+			combo_timer.stop()
 			animation_player.play("attack_1")
-			is_combo_requested = false # 在攻击期间按下攻击键事件已经被处理，恢复判断变量
 		State.ATTACK_2:
-			animation_player.play("attack_2")
-			is_combo_requested = false			
+			combo_timer.stop()
+			animation_player.play("attack_2")	
 		State.ATTACK_3:
+			combo_timer.stop()
 			animation_player.play("attack_3")
-			is_combo_requested = false	
 	
 	## 测试用	（在蹬墙跳的时候减慢时间）
 	#if to == State.WALL_JUMP:
