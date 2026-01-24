@@ -67,3 +67,7 @@ func transition_state(from:State, to:State) -> void: # 传入两个参，一个�
 		
 		State.RUN:
 			animation_player.play("run")
+
+
+func _on_hurtbox_hurt(hitbox: Hitbox) -> void:
+	print("out")
