@@ -70,4 +70,6 @@ func transition_state(from:State, to:State) -> void: # 传入两个参，一个�
 
 
 func _on_hurtbox_hurt(hitbox: Hitbox) -> void:
-	print("out")
+	stats.health -= 1
+	if stats.health == 0:
+		queue_free()
